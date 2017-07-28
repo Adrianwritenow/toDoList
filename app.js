@@ -1,53 +1,80 @@
-const express =  require('express');
-const mustacheExpress =require('mustache-express')
-const expressValidator = require('express-validator');
+const express = require('express');
+const mustacheExpress = require('mustache-express');
 const bodyParser = require('body-parser');
+const expressValidator = require('express-validator');
 
-const toDo = [];
-const app =  express();
+var app = express();
 
+var stuffToDo = []
+
+//configure mustache with express
+app.engine('mustache', mustacheExpress());
+app.set('views', './views');
+app.set('view engine', 'mustache');
+
+//Allows public folder to be served statically to browsers
 app.use(express.static('public'));
 
-app.engine('mustache', mustacheExpress());
-app.set('view engine', 'mustache');
-app.set('views', __dirname + '/views');
+//config body parser
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({
+  extended: false
+}));
 
-//configure express validator
+//config Express Validator
 app.use(expressValidator());
 
-app.get('/', function(request, response) {
-  response.render('form',{toDo:toDo});
+app.get('/', function(req, res) {
+  res.render('todo', {
+    todo: stuffToDo
+  });
 });
 
-app.post('/', function(request, response){
+app.post('/', function(req, res) {
   var schema = {
-    'toDoField':{
+    'todo': {
       notEmpty: true,
-      isLength:{
-        options: [{max: 80}],
-        errorMessage: 'Try breaking that up into smaller tasks!'
+      isLength: {
+        options: [{
+          max: 100
+        }],
+        errorMessage: 'too much stuff to do'
       },
-      errorMessage: 'Do more stuff'
-    }
+      errorMessage: 'not enough stuff to do'
+    },
   };
-  toDo.push(request.body)
+  req.assert(schema);
+  req.getValidationResult().then(function(results) {
+    if (results.isEmpty()) {
 
-
-  request.assert(schema);
-  request.getValidationResult().then(function(result){
-    if(result.isEmpty()){
-      response.render('form', {toDo:toDo});
-      console.log(request.body);
-
-    }else{
-      response.render('form',{errors:result.array()});
-
+      let id = parseInt(Math.random() * 1000);
+      newTodoObject = {
+        text: req.body.todo,
+        id: id
+      }
+      stuffToDo.push(newTodoObject);
+      console.log(stuffToDo)
+      res.render('todo', {
+        todo: stuffToDo
+      });
+    } else {
+      res.render('todo', {
+        errors: results.array()
+      });
     }
   });
 });
 
-app.listen(3000, function(){
-  console.log('Server Farted');
+app.post('/mark-complete/:id', function(req, res) {
+  let idOfCompleteTodo = parseInt(req.params.id);
+  let completedTodo = stuffToDo.find(function(todo) {
+    return todo.id === idOfCompleteTodo
+  });
+  completedTodo.complete = true;
+  res.redirect('/');
+})
+
+
+app.listen(3000, function() {
+  console.log('server started');
 });
