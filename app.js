@@ -40,7 +40,7 @@ app.post('/', function(req, res) {
         }],
         errorMessage: 'too much stuff to do'
       },
-      errorMessage: 'not enough stuff to do'
+      errorMessage: 'Please enter something to do'
     },
   };
   req.assert(schema);
@@ -59,6 +59,7 @@ app.post('/', function(req, res) {
       });
     } else {
       res.render('todo', {
+        todo: stuffToDo,
         errors: results.array()
       });
     }
